@@ -1,5 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  "https://flashcard-engine-production.up.railway.app";
 
+console.log("API BASE 👉", API_BASE);
 function getToken(): string | null {
   return localStorage.getItem("fc_token");
 }
