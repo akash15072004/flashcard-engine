@@ -1,7 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// 🔥 FINAL BACKEND URL
+const API_BASE = "https://flashcard-engine-qflr.onrender.com";
 
-console.log("API BASE 👉", API_BASE); // 👈 ADD THIS
+console.log("API BASE 👉", API_BASE);
 
+// ================= TOKEN =================
 function getToken(): string | null {
   return localStorage.getItem("fc_token");
 }
@@ -11,6 +13,7 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// ================= CORE FETCH =================
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -35,7 +38,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return res.json();
 }
 
-// Auth
+// ================= AUTH =================
 export async function apiRegister(email: string, password: string) {
   return apiFetch<{ user_id: string; email: string; token: string }>("/auth/register", {
     method: "POST",
@@ -56,7 +59,7 @@ export async function apiGetMe() {
   return apiFetch<{ user_id: string; email: string }>("/auth/me");
 }
 
-// Decks
+// ================= DECKS =================
 export async function apiGetDecks() {
   return apiFetch<any[]>("/decks");
 }
@@ -77,32 +80,36 @@ export async function apiDeleteDeck(deckId: string) {
   return apiFetch<any>(`/decks/${deckId}`, { method: "DELETE" });
 }
 
+// ================= PDF UPLOAD =================
 export async function apiUploadPdf(deckId: string, file: File, subject: string = "general") {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("subject", subject);
 
-  const uploadRes = await fetch(`${API_BASE}/decks/${deckId}/upload-pdf`, {
+  const res = await fetch(`${API_BASE}/decks/${deckId}/upload-pdf`, {
     method: "POST",
-    headers: { ...authHeaders() },
+    headers: {
+      ...authHeaders(),
+    },
     body: formData,
   });
 
-  if (uploadRes.status === 401) {
+  if (res.status === 401) {
     localStorage.removeItem("fc_token");
     localStorage.removeItem("fc_user");
     window.location.href = "/login";
     throw new Error("Unauthorized");
   }
 
-  if (!uploadRes.ok) {
-    const body = await uploadRes.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(body.detail || `Error ${uploadRes.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: "Request failed" }));
+    throw new Error(body.detail || `Error ${res.status}`);
   }
 
-  return uploadRes.json();
+  return res.json();
 }
 
+// ================= GENERATE =================
 export async function apiGenerateFromTopic(deckId: string) {
   return apiFetch<{ deck_id: string; cards_generated: number }>(
     `/decks/${deckId}/generate`,
@@ -110,7 +117,7 @@ export async function apiGenerateFromTopic(deckId: string) {
   );
 }
 
-// Cards
+// ================= CARDS =================
 export async function apiGetCards(deckId: string, dueOnly = false) {
   const query = dueOnly ? "?due_only=true" : "";
   return apiFetch<any[]>(`/cards/deck/${deckId}${query}`);
@@ -120,14 +127,14 @@ export async function apiRateCard(cardId: string, qualityRating: number, timeSpe
   return apiFetch<any>(`/cards/${cardId}/rate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       quality_rating: qualityRating,
-      time_spent_seconds: timeSpentSeconds 
+      time_spent_seconds: timeSpentSeconds,
     }),
   });
 }
 
-// Stats
+// ================= STATS =================
 export async function apiGetDeckStats(deckId: string) {
   return apiFetch<any>(`/stats/deck/${deckId}`);
 }
